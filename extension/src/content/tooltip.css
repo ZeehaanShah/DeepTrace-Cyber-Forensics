@@ -1,0 +1,131 @@
+/* DeepTrace injected styles — Aurora scheme */
+
+/* ── Floating button ─────────────────────────────────────────────────── */
+#dt-float-btn {
+  position: fixed;
+  z-index: 2147483646;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 14px 7px 11px;
+  background: rgba(10, 10, 30, 0.92);
+  color: #E2E8FF;
+  border: 1px solid rgba(120, 160, 255, 0.35);
+  border-radius: 24px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow:
+    0 4px 24px rgba(80, 120, 255, 0.3),
+    0 0 0 1px rgba(120, 160, 255, 0.1),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+  user-select: none;
+  pointer-events: all;
+  transition: transform 0.13s ease, box-shadow 0.15s ease;
+}
+#dt-float-btn:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 8px 32px rgba(80, 120, 255, 0.45),
+    0 0 0 1px rgba(120, 160, 255, 0.25),
+    inset 0 1px 0 rgba(255,255,255,0.08);
+}
+#dt-float-btn:active { transform: scale(0.95); }
+#dt-float-btn svg { stroke: rgba(160, 190, 255, 0.9); flex-shrink: 0; }
+#dt-float-btn span {
+  background: linear-gradient(90deg, #A0B4FF, #C084FC);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Mode popup ──────────────────────────────────────────────────────── */
+#dt-mode-popup {
+  position: fixed;
+  z-index: 2147483647;
+  width: 204px;
+  background: rgba(8, 10, 28, 0.96);
+  border: 1px solid rgba(120, 150, 255, 0.2);
+  border-radius: 16px;
+  padding: 11px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.7),
+    0 0 0 1px rgba(120, 150, 255, 0.08),
+    inset 0 1px 0 rgba(255,255,255,0.04);
+  pointer-events: all;
+  animation: dt-in 0.16s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes dt-in {
+  from { opacity: 0; transform: scale(0.88) translateY(6px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0); }
+}
+.dt-mp-header {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 2px 4px 9px;
+  border-bottom: 1px solid rgba(120, 150, 255, 0.12);
+  margin-bottom: 8px;
+}
+.dt-mp-type {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(120, 150, 255, 0.6);
+}
+.dt-mp-q {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(220, 230, 255, 0.9);
+}
+.dt-mp-btns { display: flex; flex-direction: column; gap: 5px; }
+.dt-mp-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(120, 150, 255, 0.1);
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: all 0.15s ease;
+}
+.dt-mp-btn:hover {
+  background: rgba(100, 130, 255, 0.12);
+  border-color: rgba(120, 150, 255, 0.35);
+  transform: translateX(2px);
+}
+.dt-mp-hl {
+  background: rgba(100, 120, 255, 0.1);
+  border-color: rgba(120, 150, 255, 0.25);
+}
+.dt-mp-hl:hover {
+  background: rgba(100, 130, 255, 0.2);
+  border-color: rgba(140, 170, 255, 0.5);
+}
+.dt-mp-icon { font-size: 17px; flex-shrink: 0; line-height: 1; }
+.dt-mp-text { display: flex; flex-direction: column; gap: 1px; }
+.dt-mp-lbl  { font-size: 12.5px; font-weight: 600; color: rgba(220,230,255,0.9); display: block; }
+.dt-mp-sub  { font-size: 10.5px; color: rgba(140,160,220,0.55); display: block; }
+
+/* ── Popup hint line ─────────────────────────────────────────────────── */
+.dt-mp-hint {
+  margin-top: 9px;
+  padding: 7px 10px;
+  background: rgba(79, 110, 247, 0.08);
+  border: 1px solid rgba(79, 110, 247, 0.2);
+  border-radius: 8px;
+  font-size: 11px;
+  color: rgba(160, 180, 255, 0.75);
+  line-height: 1.5;
+}
+.dt-mp-hint b { color: rgba(180, 200, 255, 0.95); font-weight: 600; }

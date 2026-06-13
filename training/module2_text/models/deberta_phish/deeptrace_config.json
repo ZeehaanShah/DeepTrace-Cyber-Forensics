@@ -1,0 +1,14 @@
+{
+  "model_name": "microsoft/deberta-v3-xsmall",
+  "max_len": 128,
+  "num_labels": 2,
+  "batch_size": 16,
+  "lr_full": 8e-06,
+  "pos_weight": 0.9928258270227183,
+  "val_acc": 0.987,
+  "val_f1": 0.987012987012987,
+  "val_auc": 0.9976917217235911,
+  "test_acc": 0.98,
+  "test_f1": 0.9800598205383848,
+  "test_auc": 0.9943485557698082
+}

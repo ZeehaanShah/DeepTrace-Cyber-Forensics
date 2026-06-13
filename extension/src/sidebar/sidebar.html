@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DeepTrace</title>
+<style>
+/* ── Reset ────────────────────────────────────────── */
+*,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── Aurora design tokens ─────────────────────────── */
+:root {
+  /* Base — deep space with subtle blue tint */
+  --bg-base:    #050813;
+  --bg-panel:   #090D1F;
+  --bg-card:    #0D1128;
+  --bg-raised:  #111630;
+  --bg-input:   #0B1025;
+
+  /* Borders — barely visible */
+  --bdr:        rgba(100, 130, 255, 0.12);
+  --bdr-hover:  rgba(120, 150, 255, 0.28);
+
+  /* Aurora accent — electric indigo → violet */
+  --aurora:     linear-gradient(135deg, #4F6EF7 0%, #8B5CF6 50%, #C084FC 100%);
+  --aurora-glow:rgba(79, 110, 247, 0.35);
+  --accent:     #6674F5;
+  --accent2:    #A78BFA;
+
+  /* Status colors — muted, not garish */
+  --safe:       #34D399;   /* emerald */
+  --safe-dim:   rgba(52, 211, 153, 0.10);
+  --warn:       #F59E0B;   /* amber */
+  --warn-dim:   rgba(245, 158, 11, 0.10);
+  --danger:     #F87171;   /* soft red */
+  --danger-dim: rgba(248, 113, 113, 0.10);
+  --ai:         #C084FC;   /* violet */
+  --ai-dim:     rgba(192, 132, 252, 0.10);
+
+  /* Text */
+  --txt:        rgba(220, 228, 255, 0.92);
+  --txt2:       rgba(160, 175, 230, 0.6);
+  --txt3:       rgba(120, 140, 200, 0.4);
+
+  /* Misc */
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+  --mono: "SF Mono", "JetBrains Mono", "Fira Code", monospace;
+  --r:    13px;
+  --r-sm: 9px;
+}
+
+/* ── Base ─────────────────────────────────────────── */
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg-base);
+  color: var(--txt);
+  font-family: var(--font);
+  font-size: 13px;
+  line-height: 1.6;
+  min-height: 100vh;
+  /* Subtle aurora background gradient */
+  background-image:
+    radial-gradient(ellipse 80% 40% at 20% -10%, rgba(79,110,247,0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 30% at 80% 110%, rgba(139,92,246,0.06) 0%, transparent 60%);
+}
+
+/* ── Header ───────────────────────────────────────── */
+.hdr {
+  padding: 14px 15px 13px;
+  background: rgba(9,13,31,0.9);
+  border-bottom: 1px solid var(--bdr);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  position: sticky; top: 0; z-index: 30;
+  display: flex; align-items: center; gap: 11px;
+}
+.hdr-orb {
+  width: 33px; height: 33px;
+  border-radius: 10px;
+  background: var(--aurora);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 0 18px var(--aurora-glow), 0 0 6px rgba(79,110,247,.3);
+}
+.hdr-orb svg { width: 15px; height: 15px; stroke: #fff; fill: none; stroke-width: 2.3; }
+.hdr-name {
+  font-size: 15px; font-weight: 700; letter-spacing: -0.3px;
+  background: var(--aurora);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hdr-sub { font-size: 10.5px; color: var(--txt3); margin-top: 1px; }
+
+/* ── Body ─────────────────────────────────────────── */
+.body { padding: 13px; display: flex; flex-direction: column; gap: 11px; }
+
+/* ── Input card ───────────────────────────────────── */
+.icard {
+  background: var(--bg-panel);
+  border: 1px solid var(--bdr);
+  border-radius: var(--r);
+  overflow: hidden;
+}
+
+/* Tabs */
+.tabs { display: flex; border-bottom: 1px solid var(--bdr); }
+.tab {
+  flex: 1; padding: 9px 8px;
+  background: transparent; border: none;
+  color: var(--txt2); font-size: 12px; font-weight: 500;
+  cursor: pointer; transition: all 0.2s;
+  font-family: var(--font); letter-spacing: 0.01em;
+}
+.tab.on {
+  color: var(--accent2);
+  border-bottom: 2px solid var(--accent);
+  font-weight: 600;
+}
+.panel { display: none; padding: 12px; }
+.panel.on { display: block; }
+
+/* Inputs */
+textarea, input[type=text] {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--bdr);
+  border-radius: var(--r-sm);
+  color: var(--txt);
+  font-family: var(--font);
+  font-size: 13px;
+  padding: 9px 12px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  resize: vertical;
+}
+textarea { min-height: 86px; }
+textarea::placeholder, input::placeholder { color: var(--txt3); }
+textarea:focus, input:focus {
+  border-color: rgba(102, 116, 245, 0.5);
+  box-shadow: 0 0 0 3px rgba(102, 116, 245, 0.1);
+}
+.cc { font-size: 10.5px; color: var(--txt3); text-align: right; margin-top: 4px; }
+
+/* Mode chips */
+.mode-row { display: flex; gap: 5px; margin-top: 9px; flex-wrap: wrap; align-items: center; }
+.mode-label { font-size: 10.5px; color: var(--txt3); margin-right: 2px; flex-shrink: 0; }
+.mchip {
+  padding: 4px 11px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--bdr);
+  border-radius: 20px;
+  color: var(--txt2); font-size: 11px; font-weight: 500;
+  cursor: pointer; transition: all 0.18s;
+  font-family: var(--font);
+}
+.mchip:hover { border-color: var(--bdr-hover); color: var(--txt); }
+.mchip.on {
+  background: rgba(102, 116, 245, 0.14);
+  border-color: rgba(102, 116, 245, 0.4);
+  color: var(--accent2);
+}
+
+/* Analyze button */
+.abtn {
+  width: 100%; margin-top: 10px; padding: 10px;
+  background: var(--aurora);
+  color: #fff; border: none; border-radius: var(--r-sm);
+  font-size: 13px; font-weight: 600; letter-spacing: 0.2px;
+  cursor: pointer; font-family: var(--font);
+  box-shadow: 0 4px 18px rgba(79, 110, 247, 0.3);
+  transition: opacity 0.2s, transform 0.12s;
+}
+.abtn:hover  { opacity: 0.88; }
+.abtn:active { transform: scale(0.97); }
+.abtn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* ── Loading ───────────────────────────────────────── */
+.loading {
+  display: none;
+  flex-direction: column; align-items: center; gap: 11px;
+  padding: 28px;
+  background: var(--bg-panel); border: 1px solid var(--bdr);
+  border-radius: var(--r);
+}
+.loading.on { display: flex; }
+.loader {
+  width: 34px; height: 34px;
+  border: 2.5px solid var(--bdr);
+  border-top-color: var(--accent);
+  border-right-color: var(--accent2);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.ltxt { color: var(--txt2); font-size: 12px; }
+
+/* ── Error ─────────────────────────────────────────── */
+.errcard {
+  display: none; padding: 12px;
+  background: var(--danger-dim);
+  border: 1px solid rgba(248,113,113,0.2);
+  border-radius: var(--r);
+  color: rgba(252, 165, 165, 0.9);
+  font-size: 12.5px; line-height: 1.6;
+}
+.errcard.on { display: block; }
+
+/* ── Result card ───────────────────────────────────── */
+.vcard {
+  display: none;
+  background: var(--bg-panel);
+  border: 1px solid var(--bdr);
+  border-radius: var(--r);
+  overflow: hidden;
+}
+.vcard.on { display: block; }
+
+/* Verdict */
+.vhdr {
+  padding: 15px 15px 0;
+  display: flex; align-items: center; gap: 12px;
+}
+.vorb {
+  width: 44px; height: 44px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 21px; flex-shrink: 0;
+}
+.vorb.safe     { background: var(--safe-dim); }
+.vorb.suspicious{background: var(--warn-dim); }
+.vorb.dangerous { background: var(--danger-dim); }
+.vorb.ai       { background: var(--ai-dim); }
+
+.vtitle { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
+.vtitle.safe    { color: var(--safe); }
+.vtitle.suspicious{color: var(--warn); }
+.vtitle.dangerous{color: var(--danger); }
+.vtitle.ai-gen  { color: var(--ai); }
+.vsub { font-size: 11px; color: var(--txt2); margin-top: 2px; }
+
+/* Summary */
+.vsummary {
+  padding: 10px 15px 14px;
+  font-size: 12.5px; color: var(--txt2); line-height: 1.7;
+  border-bottom: 1px solid var(--bdr);
+}
+
+/* ── Risk meter ────────────────────────────────────── */
+.risk-wrap {
+  padding: 13px 15px;
+  border-bottom: 1px solid var(--bdr);
+}
+.risk-top {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 9px;
+}
+.risk-lbl { font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.08em; color: var(--txt3); }
+.risk-pill {
+  font-size: 10.5px; font-weight: 700; padding: 2px 9px;
+  border-radius: 20px; letter-spacing: 0.04em;
+}
+.risk-pill.green  { background: var(--safe-dim);   color: var(--safe); }
+.risk-pill.yellow { background: var(--warn-dim);   color: var(--warn); }
+.risk-pill.red    { background: var(--danger-dim); color: var(--danger); }
+
+.risk-track {
+  height: 7px;
+  background: var(--bg-raised);
+  border-radius: 4px; overflow: hidden;
+  position: relative;
+}
+.risk-bar {
+  height: 100%; border-radius: 4px;
+  transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+}
+.risk-bar.green  { background: linear-gradient(90deg, #059669, var(--safe)); }
+.risk-bar.yellow { background: linear-gradient(90deg, #D97706, var(--warn)); }
+.risk-bar.red    { background: linear-gradient(90deg, #DC2626, var(--danger)); }
+.risk-bar::after {
+  content: '';
+  position: absolute; right: 1px; top: 1px; bottom: 1px;
+  width: 3px; border-radius: 2px;
+  background: rgba(255,255,255,0.4);
+}
+.risk-scale {
+  display: flex; justify-content: space-between;
+  margin-top: 4px;
+  font-size: 9.5px; color: var(--txt3);
+}
+
+/* ── AI visualization ──────────────────────────────── */
+.ai-section {
+  padding: 13px 15px;
+  border-bottom: 1px solid var(--bdr);
+}
+.sec-hdr {
+  font-size: 10.5px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--txt3); margin-bottom: 11px;
+  display: flex; align-items: center; gap: 6px;
+}
+
+.ai-chips { display: flex; gap: 7px; margin-bottom: 10px; }
+.ai-chip {
+  flex: 1; padding: 9px 10px;
+  border-radius: var(--r-sm);
+  display: flex; align-items: center; gap: 8px;
+}
+.ai-chip.human {
+  background: var(--safe-dim);
+  border: 1px solid rgba(52, 211, 153, 0.18);
+}
+.ai-chip.aigen {
+  background: var(--ai-dim);
+  border: 1px solid rgba(192, 132, 252, 0.18);
+}
+.ai-chip-ico { font-size: 18px; }
+.ai-chip-body { display: flex; flex-direction: column; }
+.ai-chip-pct {
+  font-size: 16px; font-weight: 700; line-height: 1;
+  font-family: var(--mono);
+}
+.ai-chip.human .ai-chip-pct { color: var(--safe); }
+.ai-chip.aigen .ai-chip-pct { color: var(--ai); }
+.ai-chip-lbl { font-size: 10px; color: var(--txt2); margin-top: 2px; }
+
+.ai-bar-row { margin-bottom: 5px; }
+.ai-bar-top { display: flex; justify-content: space-between;
+              font-size: 10.5px; color: var(--txt2); margin-bottom: 3px; }
+.ai-track { height: 5px; background: var(--bg-raised); border-radius: 3px; overflow: hidden; }
+.ai-fill { height: 100%; border-radius: 3px; transition: width 0.7s ease; }
+.ai-fill.human { background: linear-gradient(90deg, #059669, var(--safe)); }
+.ai-fill.aigen { background: linear-gradient(90deg, #7C3AED, var(--ai)); }
+
+.expl-box {
+  margin-top: 9px; padding: 8px 10px;
+  background: rgba(255,255,255,0.025);
+  border-left: 2px solid rgba(102, 116, 245, 0.4);
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  font-size: 11.5px; color: var(--txt2); line-height: 1.65;
+}
+
+/* ── Keyword highlights ────────────────────────────── */
+.kw-section {
+  padding: 13px 15px;
+  border-bottom: 1px solid var(--bdr);
+}
+.kw-list { display: flex; flex-wrap: wrap; gap: 5px; }
+.kw-tag {
+  padding: 3px 9px;
+  background: rgba(248, 113, 113, 0.08);
+  border: 1px solid rgba(248, 113, 113, 0.2);
+  border-radius: 5px;
+  font-size: 11px; color: rgba(252, 165, 165, 0.85);
+  font-family: var(--mono);
+}
+
+/* ── Explanation ───────────────────────────────────── */
+.explain-section {
+  padding: 13px 15px;
+  border-bottom: 1px solid var(--bdr);
+}
+.explain-text {
+  font-size: 12.5px; color: var(--txt2); line-height: 1.7;
+}
+
+/* ── Suggestions ───────────────────────────────────── */
+.sugg-section { padding: 13px 15px; }
+.sugg-list { display: flex; flex-direction: column; gap: 5px; }
+.sugg-row {
+  display: flex; align-items: flex-start; gap: 9px;
+  padding: 8px 10px;
+  background: rgba(255,255,255,0.025);
+  border: 1px solid var(--bdr);
+  border-radius: var(--r-sm);
+  font-size: 12px; color: var(--txt2); line-height: 1.55;
+  transition: border-color 0.18s;
+}
+.sugg-row:hover { border-color: var(--bdr-hover); color: var(--txt); }
+.sugg-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--accent); flex-shrink: 0; margin-top: 6px;
+}
+
+/* ── Empty state ───────────────────────────────────── */
+.empty {
+  text-align: center; padding: 38px 16px;
+  color: var(--txt2); font-size: 13px; line-height: 2;
+}
+.empty-orb { font-size: 42px; margin-bottom: 10px; opacity: 0.7; }
+.empty-h { font-size: 14px; font-weight: 600; color: var(--txt); margin-bottom: 4px; }
+</style>
+</head>
+
+<body>
+
+<!-- Header -->
+<div class="hdr">
+  <div class="hdr-orb">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+  </div>
+  <div>
+    <div class="hdr-name">DeepTrace</div>
+    <div class="hdr-sub">Phishing · Scam · AI Detection</div>
+  </div>
+</div>
+
+<div class="body">
+
+  <!-- Input card -->
+  <div class="icard">
+    <div class="tabs">
+      <button class="tab on" data-tab="text">✉ Text / Email</button>
+      <button class="tab"    data-tab="url">🔗 URL</button>
+    </div>
+
+    <!-- Text panel -->
+    <div class="panel on" id="tab-text">
+      <textarea id="txt"
+        placeholder="Paste any email, SMS, chat message, or suspicious text…"
+        maxlength="5000"></textarea>
+      <div class="cc"><span id="cnum">0</span> / 5000</div>
+      <div class="mode-row">
+        <span class="mode-label">Check for:</span>
+        <button class="mchip on" data-mode="text_ai">🔍 Both</button>
+        <button class="mchip"    data-mode="text">🎣 Phishing</button>
+        <button class="mchip"    data-mode="ai">🤖 AI only</button>
+      </div>
+      <button class="abtn" id="btn-text">Analyze Text</button>
+    </div>
+
+    <!-- URL panel -->
+    <div class="panel" id="tab-url">
+      <input type="text" id="urlinp"
+        placeholder="paypal.com  or  https://any-url.com  or  www.site.xyz"
+        maxlength="2048">
+      <button class="abtn" id="btn-url" style="margin-top:10px">Check URL</button>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading" id="loading">
+    <div class="loader"></div>
+    <div class="ltxt">Analyzing…</div>
+  </div>
+
+  <!-- Error -->
+  <div class="errcard" id="errcard"></div>
+
+  <!-- Result -->
+  <div class="vcard" id="vcard">
+
+    <!-- Verdict -->
+    <div class="vhdr">
+      <div class="vorb" id="vorb"></div>
+      <div>
+        <div class="vtitle" id="vtitle"></div>
+        <div class="vsub"   id="vsub"></div>
+      </div>
+    </div>
+    <div class="vsummary" id="vsummary"></div>
+
+    <!-- Risk meter -->
+    <div class="risk-wrap" id="risk-wrap">
+      <div class="risk-top">
+        <span class="risk-lbl">Risk Level</span>
+        <span class="risk-pill" id="risk-pill"></span>
+      </div>
+      <div class="risk-track">
+        <div class="risk-bar" id="risk-bar"></div>
+      </div>
+      <div class="risk-scale"><span>0 Safe</span><span>30</span><span>70</span><span>100 Danger</span></div>
+    </div>
+
+    <!-- AI visualization (only when AI detection ran) -->
+    <div class="ai-section" id="ai-section" style="display:none">
+      <div class="sec-hdr">🧠 AI vs Human Analysis</div>
+      <div class="ai-chips">
+        <div class="ai-chip human">
+          <span class="ai-chip-ico">🧠</span>
+          <div class="ai-chip-body">
+            <span class="ai-chip-pct" id="human-pct-big"></span>
+            <span class="ai-chip-lbl">Human-written</span>
+          </div>
+        </div>
+        <div class="ai-chip aigen">
+          <span class="ai-chip-ico">🤖</span>
+          <div class="ai-chip-body">
+            <span class="ai-chip-pct" id="ai-pct-big"></span>
+            <span class="ai-chip-lbl">AI-generated</span>
+          </div>
+        </div>
+      </div>
+      <div class="ai-bar-row">
+        <div class="ai-bar-top"><span id="human-bar-lbl"></span></div>
+        <div class="ai-track"><div class="ai-fill human" id="human-bar"></div></div>
+      </div>
+      <div class="ai-bar-row">
+        <div class="ai-bar-top"><span id="ai-bar-lbl"></span></div>
+        <div class="ai-track"><div class="ai-fill aigen" id="ai-bar"></div></div>
+      </div>
+      <div class="expl-box" id="ai-expl"></div>
+    </div>
+
+    <!-- Risky keywords (only when present) -->
+    <div class="kw-section" id="kw-section" style="display:none">
+      <div class="sec-hdr">⚠ Risky Keywords Found</div>
+      <div class="kw-list" id="kw-list"></div>
+    </div>
+
+    <!-- Explanation -->
+    <div class="explain-section" id="expl-section" style="display:none">
+      <div class="sec-hdr">🔍 Why this result?</div>
+      <div class="explain-text" id="expl-text"></div>
+    </div>
+
+    <!-- Suggestions -->
+    <div class="sugg-section" id="sugg-section" style="display:none">
+      <div class="sec-hdr">💡 Suggestions</div>
+      <div class="sugg-list" id="sugg-list"></div>
+    </div>
+
+  </div>
+
+  <!-- Empty state -->
+  <div class="empty" id="empty">
+    <div class="empty-orb">🔍</div>
+    <div class="empty-h">Ready to analyze</div>
+    Select text on any page and click the DeepTrace button,<br>
+    or paste content above to scan manually.
+  </div>
+
+</div>
+<script src="sidebar.js"></script>
+</body>
+</html>

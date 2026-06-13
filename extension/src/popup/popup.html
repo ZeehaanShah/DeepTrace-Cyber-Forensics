@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><title>DeepTrace</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{width:272px;background:#0d0d1f;color:#dde0ff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:13px;padding:16px}
+.logo-row{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.logo-box{width:34px;height:34px;background:#6c63ff;border-radius:8px;display:flex;align-items:center;justify-content:center}
+.logo-box svg{width:17px;height:17px;stroke:#fff;fill:none;stroke-width:2.2}
+.ln{font-size:16px;font-weight:700}.lv{font-size:11px;color:#8888bb}
+.status-row{display:flex;align-items:center;gap:8px;padding:9px 12px;background:#16162e;border:1px solid #2a2a55;border-radius:8px;margin-bottom:12px}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot.ok{background:#22c55e}.dot.err{background:#ef4444}.dot.unk{background:#f59e0b}
+.stxt{font-size:12px;color:#aaaacc}
+.openbtn{width:100%;padding:10px;margin-bottom:12px;background:#16162e;color:#aaaacc;border:1px solid #2a2a55;border-radius:8px;font-size:13px;cursor:pointer;transition:all .2s}
+.openbtn:hover{background:#1f1f3f;color:#dde0ff}
+.sec{font-size:10px;font-weight:700;color:#8888bb;text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px}
+.field{margin-bottom:10px}
+.field label{display:block;font-size:12px;color:#aaaacc;margin-bottom:4px}
+input[type=text]{width:100%;padding:7px 10px;background:#16162e;border:1px solid #2a2a55;border-radius:6px;color:#dde0ff;font-size:13px;outline:none}
+input[type=text]:focus{border-color:#6c63ff}
+.trow{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #1a1a35}
+.trow:last-child{border-bottom:none}
+.tlbl{font-size:13px;color:#ccccee}.tsub{font-size:11px;color:#7070a0;margin-top:2px}
+.sw{position:relative;width:36px;height:20px;flex-shrink:0}
+.sw input{opacity:0;width:0;height:0}
+.slider{position:absolute;inset:0;background:#2a2a55;border-radius:20px;transition:background .2s;cursor:pointer}
+.slider::before{content:"";position:absolute;width:14px;height:14px;bottom:3px;left:3px;background:#fff;border-radius:50%;transition:transform .2s}
+input:checked+.slider{background:#6c63ff}
+input:checked+.slider::before{transform:translateX(16px)}
+.savebtn{width:100%;padding:10px;margin-top:12px;background:#6c63ff;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer}
+.savebtn:hover{background:#7c74ff}
+.saved{display:none;text-align:center;color:#22c55e;font-size:12px;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="logo-row">
+  <div class="logo-box"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div>
+  <div><div class="ln">DeepTrace</div><div class="lv">v1.0 · AI-powered</div></div>
+</div>
+<div class="status-row"><div class="dot unk" id="sdot"></div><div class="stxt" id="stxt">Checking backend…</div></div>
+<button class="openbtn" id="opensb">Open Analysis Panel →</button>
+<div class="sec">Settings</div>
+<div class="field"><label>Backend URL</label><input type="text" id="apiUrl" placeholder="http://localhost:8000/api/v1"></div>
+<div class="trow">
+  <div><div class="tlbl">Auto-analyze pages</div><div class="tsub">Check URL on every page you visit</div></div>
+  <label class="sw"><input type="checkbox" id="autoAnalyze"><span class="slider"></span></label>
+</div>
+<div class="trow">
+  <div><div class="tlbl">Floating button</div><div class="tsub">Show on text selection</div></div>
+  <label class="sw"><input type="checkbox" id="showFloat" checked><span class="slider"></span></label>
+</div>
+<button class="savebtn" id="savebtn">Save Settings</button>
+<div class="saved" id="saved">Settings saved ✓</div>
+<script>
+const apiUrlEl=document.getElementById("apiUrl"),autoEl=document.getElementById("autoAnalyze"),
+  floatEl=document.getElementById("showFloat"),savebtn=document.getElementById("savebtn"),
+  savedEl=document.getElementById("saved"),sdot=document.getElementById("sdot"),
+  stxt=document.getElementById("stxt"),opensb=document.getElementById("opensb");
+chrome.storage.local.get(["apiUrl","autoAnalyze","showFloatBtn"],s=>{
+  apiUrlEl.value=s.apiUrl||"http://localhost:8000/api/v1";
+  autoEl.checked=!!s.autoAnalyze; floatEl.checked=s.showFloatBtn!==false;
+});
+async function checkHealth(){
+  const s=await chrome.storage.local.get("apiUrl");
+  const base=(s.apiUrl||"http://localhost:8000/api/v1").replace(/\/api.*/,"");
+  try{
+    const res=await fetch(base+"/health",{signal:AbortSignal.timeout(4000)});
+    const d=await res.json();
+    const n=Object.values(d.models||{}).filter(v=>v==="loaded").length;
+    sdot.className="dot ok"; stxt.textContent="Backend online · "+n+" models loaded";
+  }catch{sdot.className="dot err";stxt.textContent="Backend offline — run uvicorn";}
+}
+checkHealth();
+savebtn.addEventListener("click",()=>{
+  chrome.runtime.sendMessage({type:"SAVE_SETTINGS",settings:{apiUrl:apiUrlEl.value.trim(),autoAnalyze:autoEl.checked,showFloatBtn:floatEl.checked}},()=>{
+    savedEl.style.display="block"; setTimeout(()=>{savedEl.style.display="none";},2000); checkHealth();
+  });
+});
+opensb.addEventListener("click",()=>{chrome.runtime.sendMessage({type:"OPEN_SIDEBAR"});window.close();});
+</script>
+</body></html>

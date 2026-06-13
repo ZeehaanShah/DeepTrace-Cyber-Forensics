@@ -1,0 +1,126 @@
+═══════════════════════════════════════════════════════════════════
+  DeepTrace — Setup & Run Guide  (FIXED v4)
+═══════════════════════════════════════════════════════════════════
+
+WHAT WAS FIXED
+──────────────
+1. ROOT BUG (risk always 0): meta_decide() was receiving 0.0 for
+   modules that didn't run (e.g. url=0.0, text=0.0 when only AI
+   ran). The meta-LR was trained on real [0,1] scores — feeding
+   zeros biased EVERY prediction to "legitimate" with high
+   confidence, making risk=0 for everything.
+   FIX: Routes now pass has_url/has_text/has_ai flags; meta_decide
+   uses 0.5 (neutral) for skipped modules instead of 0.0.
+
+2. RISK BAR VISUAL BUG: Legitimate score at high confidence gave
+   risk_pct=0, making the green bar invisible (looked broken).
+   FIX: Legitimate now shows 5–25 range, always visible.
+
+3. LGBM FEATURE WARNING: LGBMClassifier was receiving a plain numpy
+   array but was trained with named features. Caused a UserWarning
+   on every request.
+   FIX: inference.py now builds a pandas DataFrame with feature
+   names for LightGBM calls.
+
+4. SKLEARN PICKLE WARNING: LabelEncoder version mismatch warning
+   (cosmetic, not harmful).
+   FIX: loader.py suppresses it with warnings.filterwarnings().
+
+5. META SANITY CHECK: Even if meta LR is loaded, if a module score
+   is very high (≥0.75 phish, ≥0.80 AI) we override a "legitimate"
+   meta prediction to avoid false negatives.
+
+═══════════════════════════════════════════════════════════════════
+  STEP 1 — BACKEND SETUP
+═══════════════════════════════════════════════════════════════════
+
+Requirements: Python 3.11, pip
+
+1a. Open terminal and navigate to the backend folder:
+    cd path\to\DeepTrace\backend
+
+1b. (Optional but recommended) Create a virtual environment:
+    python -m venv venv
+    venv\Scripts\activate          (Windows)
+    source venv/bin/activate       (Mac/Linux)
+
+1c. Install dependencies (already satisfied per your logs):
+    pip install -r requirements.txt
+
+1d. Start the backend server:
+    uvicorn app.main:app --reload --port 8000
+
+    You should see:
+      ✓ URL models loaded — AUC=0.9885 F1=0.9539 threshold=0.520
+      ✓ Text model loaded on cpu — F1=0.9801
+      ✓ AI detector loaded on cpu — pretrained RoBERTa ~97% accuracy
+      ✓ Meta-classifier loaded
+      ✓ Application startup complete.
+
+1e. Verify the API is working:
+    Open browser → http://localhost:8000/docs
+    Or run: curl http://localhost:8000/health
+
+═══════════════════════════════════════════════════════════════════
+  STEP 2 — EXTENSION SETUP
+═══════════════════════════════════════════════════════════════════
+
+2a. Open Chrome → chrome://extensions/
+2b. Enable "Developer mode" (top-right toggle)
+2c. Click "Load unpacked"
+2d. Select the "extension" folder inside DeepTrace/
+    (the folder containing manifest.json)
+2e. Pin DeepTrace from the extensions puzzle icon
+
+═══════════════════════════════════════════════════════════════════
+  STEP 3 — TESTING (make sure backend is running first)
+═══════════════════════════════════════════════════════════════════
+
+--- Test via API directly (curl / Postman) ---
+
+  URL phishing test:
+    curl -s -X POST http://localhost:8000/api/v1/analyze \
+      -H "Content-Type: application/json" \
+      -d '{"url":"http://paypa1-secure-login.xyz/verify","mode":"url"}'
+
+  Expected: label=phishing, risk > 50
+
+  Safe URL test:
+    curl -s -X POST http://localhost:8000/api/v1/analyze \
+      -H "Content-Type: application/json" \
+      -d '{"url":"https://www.google.com","mode":"url"}'
+
+  Expected: label=legitimate, risk 5-25
+
+  Phishing text test:
+    curl -s -X POST http://localhost:8000/api/v1/analyze \
+      -H "Content-Type: application/json" \
+      -d "{\"text\":\"Dear customer, your account has been suspended. Click here to verify your password and OTP immediately or your account will be deleted.\",\"mode\":\"text\"}"
+
+  Expected: label=phishing, risk > 50
+
+--- Test via Extension ---
+
+  URL Tab: Paste "http://paypa1-secure-login.xyz" → Check URL
+  Text Tab: Paste phishing text above → Analyze Text
+  Right-click selected text on any webpage → "Analyze with DeepTrace"
+
+═══════════════════════════════════════════════════════════════════
+  TROUBLESHOOTING
+═══════════════════════════════════════════════════════════════════
+
+  Q: Extension says "Cannot reach backend"
+  A: Make sure uvicorn is running on port 8000.
+     Run: uvicorn app.main:app --reload --port 8000
+
+  Q: Risk bar still shows 0 after update
+  A: Hard-reload the extension:
+     chrome://extensions/ → DeepTrace → Reload button
+     Then close and reopen the sidebar.
+
+  Q: "Text model not loaded" warning
+  A: The DeBERTa model folder exists and loads correctly.
+     Check startup logs for any error after "Loading text model".
+
+  Q: LightGBM UserWarning about feature names
+  A: Fixed in this version. If you still see it, restart uvicorn.

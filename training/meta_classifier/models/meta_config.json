@@ -1,0 +1,16 @@
+{
+  "feature_names": [
+    "url_phish_score",
+    "text_phish_score",
+    "ai_detect_score",
+    "url_text_diff",
+    "combined_risk"
+  ],
+  "classes": [
+    "legitimate",
+    "phishing",
+    "ai_generated"
+  ],
+  "cv_acc_mean": 0.9919166666666668,
+  "cv_acc_std": 0.0014813657362192391
+}
