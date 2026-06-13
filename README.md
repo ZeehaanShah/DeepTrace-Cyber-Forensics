@@ -631,6 +631,7 @@ Real test case results from the project (see `CF Results/` folder):
 ## Authors
 
 **Zeehaan Shah** — B.Tech Information Technology, MPSTME, NMIMS Mumbai (ZEEHAAN.SHAH45@nmims.in)
+
 **Pari Desai** — B.Tech Information Technology, MPSTME, NMIMS Mumbai (PARI.DESAI08@nmims.in)
 
 **Project Type:** Cyber Forensics Academic Project — AI-powered browser security tool
