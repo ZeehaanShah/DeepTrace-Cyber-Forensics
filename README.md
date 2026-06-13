@@ -590,10 +590,7 @@ Real test case results from the project (see `CF Results/` folder):
 | TC5 — AI-Generated Text | Uniform AI-style paragraph | ⚠️ AI-Generated |
 
 ---
-
 ## Screenshots
-
-> *(Add your screenshots from the `CF Results/` folder here)*
 
 **Phishing URL Detected**
 
